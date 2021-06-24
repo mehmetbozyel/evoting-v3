@@ -1,0 +1,10 @@
+{
+    "server": {
+      "baseDir": [
+        "./dapp"
+      ],
+      "routes": {
+        "/vendor": "./node_modules"
+      }
+    }
+  }
