@@ -1,127 +1,166 @@
-/**
- * @file ballot.sol
- * @author Jackson Ng <jackson@jacksonng.org>
- * @date created 22nd Apr 2019
- * @date last modified 30th Apr 2019
- */
-
-pragma solidity ^0.5.0;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.7.0 <0.9.0;
 
 contract Ballot {
+    // This declares a new complex type which will
+    // be used for variables later.
+    // It will represent a single voter.
+    struct Voter {
+        uint weight; // weight is accumulated by delegation
+        bool voted;  // if true, that person already voted
+        uint vote;   // index of the voted proposal
+    }
 
-    struct vote{
-        address voterAddress;
-        bool choice;
+    // This is a type for a single proposal.
+    struct Proposal {
+        string name;   // short name (up to 32 bytes)
+        uint voteCount; // number of accumulated votes
     }
     
-    struct voter{
-        string voterName;
-        bool voted;
-    }
-
-    uint private countResult = 0;
-    uint public finalResult = 0;
+    uint public totalCandidate = 0;
     uint public totalVoter = 0;
     uint public totalVote = 0;
     address public ballotOfficialAddress;      
     string public ballotOfficialName;
     string public proposal;
-    
-    mapping(uint => vote) private votes;
-    mapping(address => voter) public voterRegister;
-    
+
     enum State { Created, Voting, Ended }
 	State public state;
-	
-	//creates a new ballot contract
-	constructor(
-        string memory _ballotOfficialName,
-        string memory _proposal) public {
-        ballotOfficialAddress = msg.sender;
-        ballotOfficialName = _ballotOfficialName;
-        proposal = _proposal;
-        
-        state = State.Created;
-    }
-    
-    
-	modifier condition(bool _condition) {
-		require(_condition);
-		_;
-	}
-
-	modifier onlyOfficial() {
-		require(msg.sender ==ballotOfficialAddress);
-		_;
-	}
 
 	modifier inState(State _state) {
 		require(state == _state);
 		_;
 	}
+	
+	event voteStarted();
 
-    event voterAdded(address voter);
-    event voteStarted();
-    event voteEnded(uint finalResult);
-    event voteDone(address voter);
-    
-    //add voter
-    function addVoter(address _voterAddress, string memory _voterName)
-        public
-        inState(State.Created)
-        onlyOfficial
-    {
-        voter memory v;
-        v.voterName = _voterName;
-        v.voted = false;
-        voterRegister[_voterAddress] = v;
-        totalVoter++;
-        emit voterAdded(_voterAddress);
+    address public chairperson;
+
+    // This declares a state variable that
+    // stores a `Voter` struct for each possible address.
+    mapping(address => Voter) public voters;
+
+    // A dynamically-sized array of `Proposal` structs.
+    Proposal[] public proposals;
+
+    /// Create a new ballot to choose one of `proposalNames`.
+    constructor(string[] memory proposalNames) {
+        chairperson = msg.sender;
+        voters[chairperson].weight = 1;
+        totalCandidate = proposalNames.length;
+
+        // For each of the provided proposal names,
+        // create a new proposal object and add it
+        // to the end of the array.
+        for (uint i = 0; i < proposalNames.length; i++) {
+            // `Proposal({...})` creates a temporary
+            // Proposal object and `proposals.push(...)`
+            // appends it to the end of `proposals`.
+            proposals.push(Proposal({
+                name: proposalNames[i],
+                voteCount: 0
+            }));
+        }
+        state = State.Created;
     }
 
-    //declare voting starts now
+    // Give `voter` the right to vote on this ballot.
+    // May only be called by `chairperson`.
+    function giveRightToVote(address voter) public
+        inState(State.Created)
+        {
+        // If the first argument of `require` evaluates
+        // to `false`, execution terminates and all
+        // changes to the state and to Ether balances
+        // are reverted.
+        // This used to consume all gas in old EVM versions, but
+        // not anymore.
+        // It is often a good idea to use `require` to check if
+        // functions are called correctly.
+        // As a second argument, you can also provide an
+        // explanation about what went wrong.
+        require(
+            msg.sender == chairperson,
+            "Only chairperson can give right to vote."
+        );
+        require(
+            !voters[voter].voted,
+            "The voter already voted."
+        );
+        require(voters[voter].weight == 0);
+        voters[voter].weight = 1;
+        totalVoter++;
+    }
+    
+    
+        //declare voting starts now
     function startVote()
         public
         inState(State.Created)
-        onlyOfficial
     {
+        require(
+            msg.sender == chairperson,
+            "Only chairperson can start vote."
+        );
+        
         state = State.Voting;     
         emit voteStarted();
     }
+    
+    
 
-    //voters vote by indicating their choice (true/false)
-    function doVote(bool _choice)
-        public
+    /// Give your vote (including votes delegated to you)
+    /// to proposal `proposals[proposal].name`.
+    function vote(uint proposal) public 
         inState(State.Voting)
-        returns (bool voted)
     {
-        bool found = false;
-        
-        if (bytes(voterRegister[msg.sender].voterName).length != 0 
-        && !voterRegister[msg.sender].voted){
-            voterRegister[msg.sender].voted = true;
-            vote memory v;
-            v.voterAddress = msg.sender;
-            v.choice = _choice;
-            if (_choice){
-                countResult++; //counting on the go
-            }
-            votes[totalVote] = v;
-            totalVote++;
-            found = true;
-        }
-        emit voteDone(msg.sender);
-        return found;
+        Voter storage sender = voters[msg.sender];
+        require(sender.weight != 0, "Has no right to vote");
+        require(!sender.voted, "Already voted.");
+        sender.voted = true;
+        sender.vote = proposal;
+        totalVote++;
+
+        // If `proposal` is out of the range of the array,
+        // this will throw automatically and revert all
+        // changes.
+        proposals[proposal].voteCount += sender.weight;
     }
     
     //end votes
     function endVote()
         public
         inState(State.Voting)
-        onlyOfficial
     {
+        require(
+            msg.sender == chairperson,
+            "Only chairperson can start vote."
+        );
         state = State.Ended;
-        finalResult = countResult; //move result from private countResult to public finalResult
-        emit voteEnded(finalResult);
+    }
+
+    /// @dev Computes the winning proposal taking all
+    /// previous votes into account.
+    function winningProposal() public view
+            inState(State.Ended)
+            returns (uint winningProposal_)
+    {
+        uint winningVoteCount = 0;
+        for (uint p = 0; p < proposals.length; p++) {
+            if (proposals[p].voteCount > winningVoteCount) {
+                winningVoteCount = proposals[p].voteCount;
+                winningProposal_ = p;
+            }
+        }
+    }
+
+    // Calls winningProposal() function to get the index
+    // of the winner contained in the proposals array and then
+    // returns the name of the winner
+    function winnerName() public view
+            inState(State.Ended)
+            returns (string memory winnerName_)
+    {
+        winnerName_ = proposals[winningProposal()].name;
     }
 }
