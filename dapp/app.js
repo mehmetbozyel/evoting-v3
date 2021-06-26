@@ -241,7 +241,7 @@ var ballotABI = [
 var voterTable;
 
 $( document ).ready(function() {
-    $('#kaleidorefresh').hide();
+    $('#kaleidorefresh').show();
     $('#panels_contract').hide();
     $('#panels_voters').hide();
 
@@ -470,7 +470,7 @@ async function loadTotalVotes(myBallot){
     console.log("loadTotalVotes çalıştı")
     myBallot.methods.totalVote().call().then((result) => {
         $("#lbl_votes_num").html("<b>Votes: </b>" + result);
-    });   
+    });
 }
 
 async function loadState(myBallot){
@@ -493,9 +493,9 @@ async function loadState(myBallot){
 }
 
 async function loadVoter(myBallot, _myVoterAddress){
-    console.log("loadVoter çalıştı")
-    myBallot.methods.voterRegister(_myVoterAddress).call().then((result) => {
-        console.log(result);
+    console.log("loadVoter çalıştı" + _myVoterAddress)
+    myBallot.methods.giveRightToVote(_myVoterAddress).call().then((result) => {
+        console.log("result => ",result);
         
         var voteStatus;
         if (result.voted){
