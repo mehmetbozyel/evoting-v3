@@ -13,16 +13,13 @@ contract Ballot {
 
     // This is a type for a single proposal.
     struct Proposal {
-        string name;   // short name (up to 32 bytes)
+        bytes32 name;   // short name (up to 32 bytes)
         uint voteCount; // number of accumulated votes
     }
     
     uint public totalCandidate = 0;
     uint public totalVoter = 0;
     uint public totalVote = 0;
-    address public ballotOfficialAddress;      
-    string public ballotOfficialName;
-    string public proposal;
 
     enum State { Created, Voting, Ended }
 	State public state;
@@ -32,7 +29,10 @@ contract Ballot {
 		_;
 	}
 	
-	event voteStarted();
+    event voterAdded(address voter);
+    event voteStarted();
+    event voteEnded();
+    event voteDone(address Voter);
 
     address public chairperson;
 
@@ -44,7 +44,7 @@ contract Ballot {
     Proposal[] public proposals;
 
     /// Create a new ballot to choose one of `proposalNames`.
-    constructor(string[] memory proposalNames) {
+    constructor(bytes32[] memory proposalNames) {
         chairperson = msg.sender;
         voters[chairperson].weight = 1;
         totalCandidate = proposalNames.length;
@@ -90,6 +90,8 @@ contract Ballot {
         require(voters[voter].weight == 0);
         voters[voter].weight = 1;
         totalVoter++;
+        
+        emit voterAdded(voter);
     }
     
     
@@ -125,6 +127,7 @@ contract Ballot {
         // this will throw automatically and revert all
         // changes.
         proposals[proposal].voteCount += sender.weight;
+        emit voteDone(msg.sender);
     }
     
     //end votes
@@ -134,9 +137,10 @@ contract Ballot {
     {
         require(
             msg.sender == chairperson,
-            "Only chairperson can start vote."
+            "Only chairperson can end vote."
         );
         state = State.Ended;
+        emit voteEnded();
     }
 
     /// @dev Computes the winning proposal taking all
@@ -159,7 +163,7 @@ contract Ballot {
     // returns the name of the winner
     function winnerName() public view
             inState(State.Ended)
-            returns (string memory winnerName_)
+            returns (bytes32 winnerName_)
     {
         winnerName_ = proposals[winningProposal()].name;
     }

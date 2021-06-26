@@ -43,23 +43,38 @@
    
                		<div id="lbl_state"></div>
                		<div id="lbl_officialname"></div>
+					<div id="lbl_officialname1"></div>
+					<div id="lbl_officialname2"></div>
                		<div id="lbl_proposal"></div>
                		<div id="lbl_result"></div>
     
-                    <div id="section_voting">
-                        <hr />
-               		    <div id="lbl_voter"></div>
-                       	<div><b>Your vote</b></div>   
-               	        <input id="btnYes" class="btn btn-success" type="button" value="Yes" />
-               	        <input id="btnNo" class="btn btn-danger" type="button" value="No" />
-               	        <img id="loaderChoice" src="/dapp/LoadRed.svg">
-               	        <div id="lblVoted"></div>
-                    </div>
+					<div id="panels_vote">		
+						<div class="panel panel-default">
+							<div class="panel-heading">Vote</div>
+							<div class="panel-body">  
+								<div class="form-group">
+									<label for="candidateIndex">Candidate Index</label>
+									<input id="candidateIndex" class="form-control" type="text" value="">
+								</div>
+				
+								<div class="form-group">
+									<input id="btnVote" class="btn btn-primary" type="button" value="Vote" />
+									<img id="loader" src="/dapp/LoadRed.svg">
+								</div>
+			
+								<div id="lblVoted"></div>
+							</div>
+						</div>
+					</div>
+					
                	</div>
            	</div>    
         </div>
+	
+
 
     </div>
+
 
  
     <script src="vote.js"></script>
