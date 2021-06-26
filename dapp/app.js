@@ -435,12 +435,6 @@ function watchVoteStarted(){
 async function loadBallotContract(myBallotContractAddress){
     console.log("loadBallotContract çalıştı")
     Ballot = new web3.eth.Contract(ballotABI, myBallotContractAddress);
-    Ballot.methods.ballotOfficialName().call().then((result) => {
-        $("#lbl_officialname").html("<b>Ballot Official Name: </b>" + result);
-    });
-    Ballot.methods.proposal().call().then((result) => {
-        $("#lbl_proposal").html("<b>Proposal: </b>" + result);
-    });
     
     loadFinalResult(Ballot);
     loadTotalVoter(Ballot);
