@@ -620,16 +620,18 @@ $("#btnGo").click(async function() {
     var nameArr = proposal.split(',');
     console.log(nameArr)
 
+    var nameBytes = [];
+
     for (let i = 0; i < nameArr.length; i++) {
         var inBytes = ethers.utils.formatBytes32String(nameArr[i]);
-        nameArr[i] = inBytes;
+        nameBytes[i] = inBytes;
       }
 
-    console.log(nameArr)
+    console.log(nameBytes)
     
     ballotContract.deploy({
         data: ballotByteCode,
-        arguments: [nameArr],
+        arguments: [nameBytes],
         //0x63616e6469646174653100000000000000000000000000000000000000000000,0x6332000000000000000000000000000000000000000000000000000000000000,0x6333000000000000000000000000000000000000000000000000000000000000
     })
     .send({
